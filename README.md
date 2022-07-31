@@ -1,6 +1,6 @@
 # cloth_simulation_demo
 用C++和opengl完成了一下 https://mp.weixin.qq.com/s/x6qX_SXCUdlTmGulx6okAg的hard挑战^_^
-一个visual studio工程，两个文件cloth.h和main.cpp，总计约700行C++代码（其中有数十行的shader），在本机release模式执行可以达到60帧（不知道是不是我算帧数的方法不对。。。见main.cpp的259至264行），而用taichi指定ti.init(arch=ti.cpu)
+一个visual studio工程，两个文件cloth.h和main.cpp，总计约700行C++代码（其中有数十行的shader），在个人的机器上，release模式执行可以达到60帧（不知道是不是我算帧数的方法不对。。。见main.cpp的259至264行），而用taichi指定ti.init(arch=ti.cpu)
 运行大约36帧，指定ti.init(arch=ti.cuda)运行可以达到117帧左右。
 
 几处修改：
@@ -13,7 +13,7 @@
 
 4、把弹簧的劲度系数调小了一些。
 
-5、其余参数与taichi原本的实现一致，然后照球learnopengl抄了一个光照模型，只是小球看上去跟taichi的ggui画出来的不太一样。。
+5、其余参数与taichi原本的实现一致。然后照着learnopengl抄了一个光照模型，结果小球看上去跟taichi的ggui画出来的不太一样。。
 
 碰撞与布料的自相交之类的就太难了（特别是球多又小的情况下，自相交问题非常严重），果断放弃
 

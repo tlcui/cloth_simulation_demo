@@ -20,10 +20,10 @@
 # 运行环境与个人配置
 visual studio 2019，同时需要在visual studio中自行配置opengl3.3(glfw3 & glad & glm0.9.9)，Eigen 3.3.9, 以及onetbb。
 
+配置情况：Intel i7-11800h（8核16线程）， RTX 3060 Laptop GPU（显存6GB）， 16GB内存（8GB*2）双通道， windows10
+
 # 运行结果
 ![image](https://github.com/tlcui/cloth_simulation_demo/blob/master/results.gif)
-
-配置情况 Intel i7-11800h（8核16线程）， RTX 3060 Laptop GPU（显存6GB）， 16GB内存（8GB*2）双通道， windows10
 
 # 其他
 多亏调的一大堆库，这个C++的实现帧数能战胜ti.cpu。我的程序里的并行计算几乎全是由tbb::parallel_for()完成的，同时CPU负载也明显更高，因为运行一段时间后笔记本风扇就直接起飞（温度93°C），而ti.cpu执行时CPU温度在83°C至88°C之间。（尽管看任务管理器这两者的CPU占用都是100%）

@@ -18,7 +18,7 @@
 碰撞与布料的自相交之类的就太难了（特别是球多又小的情况下，自相交问题非常严重），果断放弃
 
 # 运行环境与个人配置
-visual studio 2019，同时需要在visual studio中自行配置opengl3.3(glfw3 & glad & glm0.9.9)，Eigen 3.3.9, 以及onetbb。
+visual studio 2019，同时需要在visual studio中自行配置opengl3.3(glfw3 & glad & glm0.9.9)，Eigen 3.3.9, 以及onetbb。可能还需要将visual studio设置为C++17版本。
 
 配置情况：Intel i7-11800h（8核16线程）， RTX 3060 Laptop GPU（显存6GB）， 16GB内存（8GB*2）双通道， windows10
 

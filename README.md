@@ -1,6 +1,6 @@
 # cloth_simulation_demo
 用C++和opengl完成了一下 https://mp.weixin.qq.com/s/x6qX_SXCUdlTmGulx6okAg的hard挑战^_^
-一个visual studio工程，两个文件cloth.h和main.cpp，总计约700行C++代码（其中有数十行的shader），在个人的机器上，release模式执行可以达到60帧（不知道是不是我算帧数的方法不对。。。见main.cpp的259至264行），而用taichi指定ti.init(arch=ti.cpu)，运行大约36帧，指定ti.init(arch=ti.cuda)运行可以达到117帧左右。仓库根目录下的cloth_simulation.py即为相应的taichi实现。
+一个visual studio工程，两个文件cloth.h和main.cpp，总计约700行C++代码（其中有数十行的shader），在个人的机器上，release模式执行可以达到60帧（不知道是不是我算帧数的方法不对。。。见main.cpp的259至264行），而用taichi指定ti.init(arch=ti.cpu)，运行大约36帧，指定ti.init(arch=ti.cuda)运行可以达到117帧左右。本仓库根目录下的cloth_simulation.py即为相应的taichi实现。
 
 几处修改：
 

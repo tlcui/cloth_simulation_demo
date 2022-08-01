@@ -1,3 +1,8 @@
+# 更新
+发现一个低级错误，就是没有计算布料的光照。。。所以下面说的关于性能和帧数先全部作废
+
+预计很快可以解决
+
 # cloth_simulation_demo
 用C++和opengl完成了一下 https://mp.weixin.qq.com/s/x6qX_SXCUdlTmGulx6okAg 的hard挑战^_^
 

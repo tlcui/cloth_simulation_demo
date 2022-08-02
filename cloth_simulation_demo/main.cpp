@@ -47,28 +47,52 @@ static constexpr int substeps = static_cast<int>(1.0 / 60 / dt);
 
 static constexpr int ball_number = 5;
 static constexpr float ball_radius = 0.5 / ball_number;
-static constexpr int ball_mesh_resolution_x = 40;
-static constexpr int ball_mesh_resolution_y = 40;
+static constexpr int ball_mesh_resolution_x = 60;
+static constexpr int ball_mesh_resolution_y = 60;
 
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
 "layout (location = 1) in vec3 aColor;\n"
-"out vec3 ourColor;\n"
+"layout (location = 2) in vec3 aNormal;\n"
+"out vec3 objectColor;\n"
+"out vec3 Normal;\n"
+"out vec3 FragPos;\n"
 "uniform mat4 model;\n"
 "uniform mat4 view;\n"
 "uniform mat4 projection;\n"
 "void main()\n"
 "{\n"
+"   FragPos = vec3(model * vec4(aPos, 1.0f));\n"
 "   gl_Position = projection * view * model * vec4(aPos, 1.0f);\n"
-"   ourColor = aColor;\n"
+"   objectColor = aColor;\n"
+"   Normal = aNormal;\n"
 "}\0";
 
 const char* fragmentShaderSource = "#version 330 core\n"
 "out vec4 FragColor;\n"
-"in vec3 ourColor;\n"
+"in vec3 Normal;\n"
+"in vec3 FragPos;\n"
+"in vec3 objectColor;\n"
+"uniform vec3 lightPos;\n"
+"uniform vec3 viewPos;\n"
+"uniform vec3 lightColor;\n"
 "void main()\n"
 "{\n"
-"   FragColor = vec4(ourColor, 1.0f);\n"
+"    float ambientStrength = 0.1;\n"
+"    vec3 ambient = ambientStrength * lightColor;\n"
+"    vec3 norm = normalize(Normal);\n"
+"    vec3 offset = lightPos - FragPos;\n"
+"    float distance_square = dot(offset, offset);\n"
+"    vec3 lightDir = normalize(offset);\n"
+"    float diff = max(dot(norm, lightDir), 0.0);\n"
+"    vec3 diffuse = diff * lightColor;\n"
+"    float specularStrength = 0.5;\n"
+"    vec3 viewDir = normalize(viewPos - FragPos);\n"
+"    vec3 halfwayDir = normalize(lightDir + viewDir);\n"
+"    float spec = pow(max(dot(norm, halfwayDir), 0.0), 32);\n"
+"    vec3 specular = specularStrength * spec * lightColor;\n"
+"    vec3 result = 6*(ambient + diffuse/distance_square + specular/distance_square) * objectColor;\n"
+"    FragColor = vec4(result, 1.0);\n"
 "}\n\0";
 
 const char* ball_vertexShaderSource = "#version 330 core\n"
@@ -99,15 +123,17 @@ const char* ball_fragmentShaderSource = "#version 330 core\n"
 "    float ambientStrength = 0.1;\n"
 "    vec3 ambient = ambientStrength * lightColor;\n"
 "    vec3 norm = normalize(Normal);\n"
-"    vec3 lightDir = normalize(lightPos - FragPos);\n"
+"    vec3 offset = lightPos - FragPos;\n"
+"    float distance_square = dot(offset, offset);\n"
+"    vec3 lightDir = normalize(offset);\n"
 "    float diff = max(dot(norm, lightDir), 0.0);\n"
 "    vec3 diffuse = diff * lightColor;\n"
 "    float specularStrength = 0.5;\n"
 "    vec3 viewDir = normalize(viewPos - FragPos);\n"
-"    vec3 reflectDir = reflect(-lightDir, norm);\n"
-"    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n"
+"    vec3 halfwayDir = normalize(lightDir + viewDir);\n"
+"    float spec = pow(max(dot(norm, halfwayDir), 0.0), 20);\n"
 "    vec3 specular = specularStrength * spec * lightColor;\n"
-"    vec3 result = (ambient + diffuse + specular) * objectColor;\n"
+"    vec3 result = 3*(ambient + diffuse/distance_square + specular/distance_square) * objectColor;\n"
 "    FragColor = vec4(result, 1.0);\n"
 "}\n\0";
 
@@ -215,17 +241,20 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*6*n*n, mesh.vertices, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*9*n*n, mesh.vertices, GL_STREAM_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*6*(n-1)*(n-1), mesh.indices, GL_STREAM_DRAW);
 
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+    // normal vector attribute
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     // ---for balls_mesh---
     unsigned int VBO_balls, VAO_balls, EBO_balls;
@@ -306,9 +335,16 @@ int main()
         int project_loc = glGetUniformLocation(shaderProgram, "projection");
         glUniformMatrix4fv(project_loc, 1, GL_FALSE, glm::value_ptr(projection));
 
+        int light_color_loc = glGetUniformLocation(shaderProgram, "lightColor");
+        glUniform3f(light_color_loc, 1.0f, 1.0f, 1.0f);
+        int light_pos_loc = glGetUniformLocation(shaderProgram, "lightPos");
+        glUniform3f(light_pos_loc, 0.0f, 1.0f, 2.0f);
+        int view_pos_loc = glGetUniformLocation(shaderProgram, "viewPos");
+        glUniform3f(view_pos_loc, 0.0f, 0.0f, 3.0f);
+
         glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * n * n, mesh.vertices, GL_STREAM_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * n * n, mesh.vertices, GL_STREAM_DRAW);
 
         glDrawElements(GL_TRIANGLES, (n-1)*(n-1)*6, GL_UNSIGNED_INT, 0);
 
@@ -324,11 +360,11 @@ int main()
 
         int object_color_loc = glGetUniformLocation(ball_shaderProgram, "objectColor");
         glUniform3f(object_color_loc, 0.7f, 0.0f, 0.0f);
-        int light_color_loc = glGetUniformLocation(ball_shaderProgram, "lightColor");
+        light_color_loc = glGetUniformLocation(ball_shaderProgram, "lightColor");
         glUniform3f(light_color_loc, 1.0f, 1.0f, 1.0f);
-        int light_pos_loc = glGetUniformLocation(ball_shaderProgram, "lightPos");
+        light_pos_loc = glGetUniformLocation(ball_shaderProgram, "lightPos");
         glUniform3f(light_pos_loc, 0.0f, 1.0f, 2.0f);
-        int view_pos_loc = glGetUniformLocation(ball_shaderProgram, "viewPos");
+        view_pos_loc = glGetUniformLocation(ball_shaderProgram, "viewPos");
         glUniform3f(view_pos_loc, 0.0f, 0.0f, 3.0f);
         
         glBindVertexArray(VAO_balls);

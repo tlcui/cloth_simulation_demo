@@ -72,9 +72,16 @@ public:
 
 	void update_vertices(const Cloth<M, N, T>& cloth);
 
+private:
+	void update_triangles_normalvec(const Cloth<M, N, T>& cloth);
+
 public:
 	unsigned int* indices;
 	T* vertices;
+
+private:
+	Array<Vector3<T>, Dynamic, Dynamic> bottom_left; //normal vector for triangle mesh
+	Array<Vector3<T>, Dynamic, Dynamic> up_right; //normal vector for triangle mesh
 };
 
 template<int Number, int X_SEGMENTS = 30, int Y_SEGMENTS = 30, typename T = float>
@@ -177,7 +184,7 @@ void substep(Cloth<M, N, T>& cloth, const Balls<Number, T>& balls, const T dt)
 							Vector3<T> v_diff(cloth.velocity.coeff(i, j) - cloth.velocity.coeff(another_i, another_j));
 							T current_dist = x_diff.norm();
 							Vector3<T> d(x_diff / current_dist);
-							T original_dist = cloth.quad_size * (Vector2<T>(-offset_i, -offset_j).norm());
+							T original_dist = cloth.quad_size * (Vector2<T>(offset_i, offset_j).norm());
 
 							force += (-spring_Y * d * (current_dist / original_dist - 1)); //spring force
 							force += (-v_diff.dot(d) * d * dashpot_damping * cloth.quad_size); //dashpot damping
@@ -217,11 +224,13 @@ void substep(Cloth<M, N, T>& cloth, const Balls<Number, T>& balls, const T dt)
 
 
 template<int M, int N, typename T>
-inline Cloth_mesh<M, N, T>::Cloth_mesh()
+inline Cloth_mesh<M, N, T>::Cloth_mesh() :bottom_left(M - 1, N - 1), up_right(M - 1, N - 1)
 {
 	int triangle_number = (M - 1) * (N - 1) * 2;
 	indices = new unsigned int[triangle_number * 3];
-	vertices = new T[M * N * 6];
+	vertices = new T[M * N * 9]; // position, color and normal vector
+
+	memset(vertices, 0x00, sizeof(vertices));
 	tbb::parallel_for(tbb::blocked_range<int>(0, M-1), [&](const tbb::blocked_range<int>& r)
 		{
 			for (int i = r.begin(); i != r.end(); ++i)
@@ -251,7 +260,7 @@ inline Cloth_mesh<M, N, T>::Cloth_mesh()
 			{
 				for (int i = 0; i < M; ++i)
 				{
-					int index = 6 * (i * N + j);
+					int index = 9 * (i * N + j);
 					if ((i / 4 + j / 4) % 2 == 0)
 					{
 						vertices[index + 3] = 0.0;
@@ -273,23 +282,67 @@ inline Cloth_mesh<M, N, T>::Cloth_mesh()
 template<int M, int N, typename T>
 inline Cloth_mesh<M, N, T>::~Cloth_mesh()
 {
-	delete [] indices;
-	delete [] vertices;
+	delete[] indices;
+	delete[] vertices;
 }
 
 template<int M, int N, typename T>
 inline void Cloth_mesh<M, N, T>::update_vertices(const Cloth<M, N, T>& cloth)
 {
+	update_triangles_normalvec(cloth);
+
 	tbb::parallel_for(tbb::blocked_range<int>(0, N), [&](const tbb::blocked_range<int>& r)
 		{
 			for (int j = r.begin(); j != r.end(); ++j)
 			{
 				for (int i = 0; i < M; ++i)
 				{
-					int index = 6 * (i * N + j);
-					vertices[index + 0] = cloth.position.coeff(i, j).x();
-					vertices[index + 1] = cloth.position.coeff(i, j).y();
-					vertices[index + 2] = cloth.position.coeff(i, j).z();
+					int index = 9 * (i * N + j);
+					Vector3<T> position_ij(cloth.position.coeff(i, j));
+
+					//update position
+					vertices[index + 0] = position_ij.x();
+					vertices[index + 1] = position_ij.y();
+					vertices[index + 2] = position_ij.z();
+
+					//update normal vector
+					//note that a vertex is joint with 6 triangles in our mesh
+					Vector3<T> normal(Vector3<T>::Zero());
+					if (i > 0 && i < M - 1 && j > 0 && j < N - 1)
+					{
+						normal = (bottom_left.coeff(i, j) + bottom_left.coeff(i - 1, j) + bottom_left.coeff(i, j - 1)
+							+ up_right.coeff(i - 1, j) + up_right.coeff(i, j - 1) + up_right.coeff(i - 1, j - 1));
+					}
+
+					vertices[index + 6] = normal.x();
+					vertices[index + 7] = normal.y();
+					vertices[index + 8] = normal.z();
+				}
+			}
+		}
+	);
+}
+
+template<int M, int N, typename T>
+inline void Cloth_mesh<M, N, T>::update_triangles_normalvec(const Cloth<M, N, T>& cloth)
+{
+	tbb::parallel_for(tbb::blocked_range<int>(0, N-1), [&](const tbb::blocked_range<int>& r)
+		{
+			for (int j = r.begin(); j != r.end(); ++j)
+			{
+				for (int i = 0; i < M-1; ++i)
+				{
+					Vector3<T> edge1(cloth.position.coeff(i + 1, j) - cloth.position.coeff(i, j));
+					Vector3<T> edge2(cloth.position.coeff(i, j + 1) - cloth.position.coeff(i, j));
+					Vector3<T> normal(edge1.cross(edge2));
+					normal /= normal.norm();
+					bottom_left.coeffRef(i, j) = normal;
+
+					edge1 = cloth.position.coeff(i + 1, j) - cloth.position.coeff(i + 1, j + 1);
+					edge2 = cloth.position.coeff(i, j + 1) - cloth.position.coeff(i + 1, j + 1);
+					normal = edge1.cross(edge2);
+					normal /= normal.norm();
+					up_right.coeffRef(i, j) = normal;
 				}
 			}
 		}

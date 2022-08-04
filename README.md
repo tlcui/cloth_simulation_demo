@@ -1,16 +1,14 @@
-# 更新
-发现一个低级错误，就是没有计算布料的光照。。。所以下面说的关于性能和帧数先全部作废
-
-预计很快可以解决
+# 更新 
+添加了布料的shading，现在布料看上去自然了许多。
 
 # cloth_simulation_demo
 用C++和opengl完成了一下 https://mp.weixin.qq.com/s/x6qX_SXCUdlTmGulx6okAg 的hard挑战^_^
 
-一个visual studio工程，两个文件cloth.h和main.cpp，总计约700行C++代码（其中有数十行的shader）。在个人的机器上，release模式执行可以达到60帧（不知道是不是算帧数的方法不对。。。见main.cpp的259至264行），而用taichi指定ti.init(arch=ti.cpu)，运行大约36帧，指定ti.init(arch=ti.cuda)运行可以达到117帧左右。本仓库根目录下的cloth_simulation.py即为相应的taichi实现。
+一个visual studio工程，两个文件cloth.h和main.cpp，总计约800行C++代码（其中有数十行的shader）。在个人的机器上，release模式执行可以达到60帧，而用taichi指定ti.init(arch=ti.cpu)，运行大约36帧，指定ti.init(arch=ti.cuda)运行可以达到117帧左右，指定ti.init(arch=ti.cuda)甚至可以达到215帧。本仓库根目录下的cloth_simulation.py即为相应的taichi实现。
 
 几处修改：
 
-1、可以加好几个球，只要在main.cpp里改一下ball_number就行。默认是5个球。
+1、可以加好几个球，只要在main.cpp里改一下ball_number就行。默认是5个球。在光照模型中增加距离项，离光源更远的小球看上去更暗
 
 2、添加了布料和球的摩擦，但其实只是简单的将速度乘以0.99>_<。
 
@@ -18,7 +16,7 @@
 
 4、把弹簧的劲度系数调小了一些。
 
-5、其余参数与taichi原本的实现一致。然后照着learnopengl抄了一个光照模型，结果小球看上去跟taichi的ggui画出来的不太一样。。
+5、其余参数与taichi原本的实现一致。然后照着learnopengl抄了一个光照模型，结果小球看上去跟taichi的ggui画出来的不太一样，可能是blinn-phong光照模型的specular项的参数引起的。
 
 碰撞与布料的自相交之类的就太难了（特别是球多又小的情况下，自相交问题非常严重），果断放弃
 
@@ -28,8 +26,8 @@ visual studio 2019，同时需要在visual studio中自行配置opengl3.3(glfw3 
 配置情况：Intel i7-11800h（8核16线程）， RTX 3060 Laptop GPU（显存6GB）， 16GB内存（8GB*2）双通道， windows10
 
 # 运行结果
-![image](https://github.com/tlcui/cloth_simulation_demo/blob/master/results.gif)
+![image](https://github.com/tlcui/cloth_simulation_demo/blob/master/results_new.gif)
 
 # 其他
-多亏调的一大堆库，这个C++的实现帧数能战胜ti.cpu。我的程序里的并行计算几乎全是由tbb::parallel_for()完成的，同时CPU负载也明显更高，因为运行一段时间后笔记本风扇就直接起飞（温度93°C），而ti.cpu执行时CPU温度在83°C至88°C之间。（尽管看任务管理器这两者的CPU占用都是100%）
+借助调的一大堆库，这个C++的实现帧数能战胜ti.cpu。我的程序里的并行计算几乎全是由tbb::parallel_for()完成的，同时CPU负载也明显更高，因为运行一段时间后笔记本风扇就直接起飞（温度93°C），而ti.cpu执行时CPU温度在83°C至88°C之间。（尽管看任务管理器这两者的CPU占用都是100%）
 

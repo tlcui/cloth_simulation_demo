@@ -47,8 +47,8 @@ static constexpr int substeps = static_cast<int>(1.0 / 60 / dt);
 
 static constexpr int ball_number = 5;
 static constexpr float ball_radius = 0.5 / ball_number;
-static constexpr int ball_mesh_resolution_x = 60;
-static constexpr int ball_mesh_resolution_y = 60;
+static constexpr int ball_mesh_resolution_x = 100;
+static constexpr int ball_mesh_resolution_y = 100;
 
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
@@ -279,16 +279,19 @@ int main()
 
     float current_t = 0.f;
 
-    double last_time = glfwGetTime();;
+    double last_time = glfwGetTime();
+    double current_time = 0.;
+    double fps = 0.;
+
     // render loop
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window))
     {
         // show fps
-        double current_time = glfwGetTime();
-        double fps = 1 / (current_time - last_time);
+        current_time = glfwGetTime();
+        fps = 1 / (current_time - last_time);
         std::stringstream ss;
-        ss << "C++ cloth simulation " <<  fps << " FPS";
+        ss << "C++ cloth simulation " << fps << " FPS";
         glfwSetWindowTitle(window, ss.str().c_str());
         last_time = current_time;
 
@@ -368,9 +371,6 @@ int main()
         glUniform3f(view_pos_loc, 0.0f, 0.0f, 3.0f);
         
         glBindVertexArray(VAO_balls);
-        //glBindBuffer(GL_ARRAY_BUFFER, VBO_balls);
-        //glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ball_number * (ball_mesh_resolution_x + 1) * (ball_mesh_resolution_y + 1) * 3, balls_mesh.vertices, GL_STATIC_DRAW);
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glDrawElements(GL_TRIANGLES, ball_number * 6 * ball_mesh_resolution_x * ball_mesh_resolution_y, GL_UNSIGNED_INT, 0);
  
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

@@ -3,7 +3,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
 #include "cloth.h"
+#include "shader.h"
 
 #include <iostream>
 
@@ -50,143 +52,12 @@ static constexpr float ball_radius = 0.5 / ball_number;
 static constexpr int ball_mesh_resolution_x = 100;
 static constexpr int ball_mesh_resolution_y = 100;
 
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"layout (location = 1) in vec3 aColor;\n"
-"layout (location = 2) in vec3 aNormal;\n"
-"out vec3 objectColor;\n"
-"out vec3 Normal;\n"
-"out vec3 FragPos;\n"
-"uniform mat4 model;\n"
-"uniform mat4 view;\n"
-"uniform mat4 projection;\n"
-"void main()\n"
-"{\n"
-"   FragPos = vec3(model * vec4(aPos, 1.0f));\n"
-"   gl_Position = projection * view * model * vec4(aPos, 1.0f);\n"
-"   objectColor = aColor;\n"
-"   Normal = aNormal;\n"
-"}\0";
-
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"in vec3 Normal;\n"
-"in vec3 FragPos;\n"
-"in vec3 objectColor;\n"
-"uniform vec3 lightPos;\n"
-"uniform vec3 viewPos;\n"
-"uniform vec3 lightColor;\n"
-"void main()\n"
-"{\n"
-"    float ambientStrength = 0.1;\n"
-"    vec3 ambient = ambientStrength * lightColor;\n"
-"    vec3 norm = normalize(Normal);\n"
-"    vec3 offset = lightPos - FragPos;\n"
-"    float distance_square = dot(offset, offset);\n"
-"    vec3 lightDir = normalize(offset);\n"
-"    float diff = max(dot(norm, lightDir), 0.0);\n"
-"    vec3 diffuse = diff * lightColor;\n"
-"    float specularStrength = 0.5;\n"
-"    vec3 viewDir = normalize(viewPos - FragPos);\n"
-"    vec3 halfwayDir = normalize(lightDir + viewDir);\n"
-"    float spec = pow(max(dot(norm, halfwayDir), 0.0), 32);\n"
-"    vec3 specular = specularStrength * spec * lightColor;\n"
-"    vec3 result = 6*(ambient + diffuse/distance_square + specular/distance_square) * objectColor;\n"
-"    FragColor = vec4(result, 1.0);\n"
-"}\n\0";
-
-const char* ball_vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"layout (location = 1) in vec3 aNormal;\n"
-"uniform mat4 model;\n"
-"uniform mat4 view;\n"
-"uniform mat4 projection;\n"
-"out vec3 Normal;\n"
-"out vec3 FragPos;\n"
-"void main()\n"
-"{\n"
-"   FragPos = vec3(model * vec4(aPos, 1.0f));\n"
-"   Normal = mat3(transpose(inverse(model))) * aNormal;\n"
-"   gl_Position = projection * view * model * vec4(aPos, 1.0f);\n"
-"}\0";
-
-const char* ball_fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-"in vec3 Normal;\n"
-"in vec3 FragPos;\n"
-"uniform vec3 lightPos;\n"
-"uniform vec3 viewPos;\n"
-"uniform vec3 objectColor;\n"
-"uniform vec3 lightColor;\n"
-"void main()\n"
-"{\n"
-"    float ambientStrength = 0.1;\n"
-"    vec3 ambient = ambientStrength * lightColor;\n"
-"    vec3 norm = normalize(Normal);\n"
-"    vec3 offset = lightPos - FragPos;\n"
-"    float distance_square = dot(offset, offset);\n"
-"    vec3 lightDir = normalize(offset);\n"
-"    float diff = max(dot(norm, lightDir), 0.0);\n"
-"    vec3 diffuse = diff * lightColor;\n"
-"    float specularStrength = 0.5;\n"
-"    vec3 viewDir = normalize(viewPos - FragPos);\n"
-"    vec3 halfwayDir = normalize(lightDir + viewDir);\n"
-"    float spec = pow(max(dot(norm, halfwayDir), 0.0), 20);\n"
-"    vec3 specular = specularStrength * spec * lightColor;\n"
-"    vec3 result = 3*(ambient + diffuse/distance_square + specular/distance_square) * objectColor;\n"
-"    FragColor = vec4(result, 1.0);\n"
-"}\n\0";
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
 // settings
 static constexpr unsigned int SCR_WIDTH = 1024;
 static constexpr unsigned int SCR_HEIGHT = 1024;
-
-// build and compile our shader program
-unsigned int generate_shader(const char* vertexShaderSource, const char* fragmentShaderSource)
-{
-    // vertex shader
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    // check for shader compile errors
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // fragment shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    // check for shader compile errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // link shaders
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    // check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    return shaderProgram;
-}
 
 int main()
 {
@@ -229,8 +100,10 @@ int main()
         return -1;
     }
     
-    unsigned int shaderProgram = generate_shader(vertexShaderSource, fragmentShaderSource);
-    unsigned int ball_shaderProgram = generate_shader(ball_vertexShaderSource, ball_fragmentShaderSource);
+    //unsigned int shaderProgram = generate_shader(vertexShaderSource, fragmentShaderSource);
+    //unsigned int ball_shaderProgram = generate_shader(ball_vertexShaderSource, ball_fragmentShaderSource);
+    Shader cloth_shader("./cloth_vertex_shader.txt", "./cloth_fragment_shader.txt");
+    Shader balls_shader("./balls_vertex_shader.txt", "./balls_fragment_shader.txt");
 
     // ---for cloth_mesh---
     unsigned int VBO, VAO, EBO; 
@@ -321,7 +194,7 @@ int main()
         mesh.update_vertices(cloth);
         
         // ---render cloth---
-        glUseProgram(shaderProgram);
+        cloth_shader.use();
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
@@ -331,19 +204,13 @@ int main()
             glm::vec3(0.0f, 0.0f, 0.0f),           
             glm::vec3(0.0f, 1.0f, 0.0f));
 
-        int model_loc = glGetUniformLocation(shaderProgram, "model");
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
-        int view_loc = glGetUniformLocation(shaderProgram, "view");
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(view));
-        int project_loc = glGetUniformLocation(shaderProgram, "projection");
-        glUniformMatrix4fv(project_loc, 1, GL_FALSE, glm::value_ptr(projection));
+        cloth_shader.set_matrix4f("model", model);
+        cloth_shader.set_matrix4f("view", view);
+        cloth_shader.set_matrix4f("projection", projection);
 
-        int light_color_loc = glGetUniformLocation(shaderProgram, "lightColor");
-        glUniform3f(light_color_loc, 1.0f, 1.0f, 1.0f);
-        int light_pos_loc = glGetUniformLocation(shaderProgram, "lightPos");
-        glUniform3f(light_pos_loc, 0.0f, 1.0f, 2.0f);
-        int view_pos_loc = glGetUniformLocation(shaderProgram, "viewPos");
-        glUniform3f(view_pos_loc, 0.0f, 0.0f, 3.0f);
+        cloth_shader.set_float3("lightColor", 1.0f, 1.0f, 1.0f);
+        cloth_shader.set_float3("lightPos", 0.0f, 1.0f, 2.0f);
+        cloth_shader.set_float3("viewPos", 0.0f, 0.0f, 3.0f);
 
         glBindVertexArray(VAO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -352,23 +219,17 @@ int main()
         glDrawElements(GL_TRIANGLES, (n-1)*(n-1)*6, GL_UNSIGNED_INT, 0);
 
         // ---render balls---
-        glUseProgram(ball_shaderProgram);
+        balls_shader.use();
 
-        model_loc = glGetUniformLocation(ball_shaderProgram, "model");
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, glm::value_ptr(model));
-        view_loc = glGetUniformLocation(ball_shaderProgram, "view");
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, glm::value_ptr(view));
-        project_loc = glGetUniformLocation(ball_shaderProgram, "projection");
-        glUniformMatrix4fv(project_loc, 1, GL_FALSE, glm::value_ptr(projection));
+        balls_shader.set_matrix4f("model", model);
+        balls_shader.set_matrix4f("view", view);
+        balls_shader.set_matrix4f("projection", projection);
 
-        int object_color_loc = glGetUniformLocation(ball_shaderProgram, "objectColor");
-        glUniform3f(object_color_loc, 0.7f, 0.0f, 0.0f);
-        light_color_loc = glGetUniformLocation(ball_shaderProgram, "lightColor");
-        glUniform3f(light_color_loc, 1.0f, 1.0f, 1.0f);
-        light_pos_loc = glGetUniformLocation(ball_shaderProgram, "lightPos");
-        glUniform3f(light_pos_loc, 0.0f, 1.0f, 2.0f);
-        view_pos_loc = glGetUniformLocation(ball_shaderProgram, "viewPos");
-        glUniform3f(view_pos_loc, 0.0f, 0.0f, 3.0f);
+        balls_shader.set_float3("objectColor", 0.7f, 0.0f, 0.0f);
+        balls_shader.set_float3("lightColor", 1.0f, 1.0f, 1.0f);
+        balls_shader.set_float3("lightPos", 0.0f, 1.0f, 2.0f);
+        balls_shader.set_float3("viewPos", 0.0f, 0.0f, 3.0f);
+
         
         glBindVertexArray(VAO_balls);
         glDrawElements(GL_TRIANGLES, ball_number * 6 * ball_mesh_resolution_x * ball_mesh_resolution_y, GL_UNSIGNED_INT, 0);

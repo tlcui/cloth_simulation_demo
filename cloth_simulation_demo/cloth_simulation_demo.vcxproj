@@ -162,12 +162,6 @@
     <ClInclude Include="cloth.h" />
     <ClInclude Include="shader.h" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="balls_fragment_shader.txt" />
-    <Text Include="balls_vertex_shader.txt" />
-    <Text Include="cloth_fragment_shader.txt" />
-    <Text Include="cloth_vertex_shader.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -48,7 +48,7 @@ static constexpr float dt = 4e-2 / n;
 static constexpr int substeps = static_cast<int>(1.0 / 60 / dt);
 
 static constexpr int ball_number = 5;
-static constexpr float ball_radius = 0.5 / ball_number;
+static constexpr float ball_radius = 0.6 / ball_number;
 static constexpr int ball_mesh_resolution_x = 100;
 static constexpr int ball_mesh_resolution_y = 100;
 
@@ -100,10 +100,8 @@ int main()
         return -1;
     }
     
-    //unsigned int shaderProgram = generate_shader(vertexShaderSource, fragmentShaderSource);
-    //unsigned int ball_shaderProgram = generate_shader(ball_vertexShaderSource, ball_fragmentShaderSource);
-    Shader cloth_shader("./cloth_vertex_shader.txt", "./cloth_fragment_shader.txt");
-    Shader balls_shader("./balls_vertex_shader.txt", "./balls_fragment_shader.txt");
+    Shader cloth_shader("./shader/cloth_vertex_shader.txt", "./shader/cloth_fragment_shader.txt");
+    Shader balls_shader("./shader/balls_vertex_shader.txt", "./shader/balls_fragment_shader.txt");
 
     // ---for cloth_mesh---
     unsigned int VBO, VAO, EBO; 

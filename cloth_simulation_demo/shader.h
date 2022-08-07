@@ -132,5 +132,9 @@ private:
             }
         }
     }
+
+private:
+    Shader(const Shader& another) = delete;
+    Shader& operator = (const Shader& anoher) = delete;
 };
 #endif

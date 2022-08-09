@@ -6,6 +6,7 @@
 
 #include "cloth.h"
 #include "shader.h"
+#include "camera.h"
 
 #include <iostream>
 
@@ -53,11 +54,24 @@ static constexpr int ball_mesh_resolution_x = 100;
 static constexpr int ball_mesh_resolution_y = 100;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos_in, double ypos_in);
 void processInput(GLFWwindow* window);
 
 // settings
-static constexpr unsigned int SCR_WIDTH = 1024;
-static constexpr unsigned int SCR_HEIGHT = 1024;
+static constexpr unsigned int SCR_WIDTH = 800;
+static constexpr unsigned int SCR_HEIGHT = 600;
+
+float last_time = static_cast<float>(glfwGetTime());
+float current_time = static_cast<float>(glfwGetTime());
+float delta_time = 0.f;
+float fps = 0.;
+
+// mouse settings
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
+
+Camera camera(glm::vec3(0.f, 0.f, 3.f));
 
 int main()
 {
@@ -92,6 +106,10 @@ int main()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -148,19 +166,16 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    float current_t = 0.f;
-
-    double last_time = glfwGetTime();
-    double current_time = 0.;
-    double fps = 0.;
 
     // render loop
     glEnable(GL_DEPTH_TEST);
+    float current_timestep = 0.f;
     while (!glfwWindowShouldClose(window))
     {
         // show fps
-        current_time = glfwGetTime();
-        fps = 1 / (current_time - last_time);
+        current_time = static_cast<float>(glfwGetTime());
+        delta_time = current_time - last_time;
+        fps = 1 / delta_time;
         std::stringstream ss;
         ss << "C++ cloth simulation " << fps << " FPS";
         glfwSetWindowTitle(window, ss.str().c_str());
@@ -172,7 +187,7 @@ int main()
         glClearColor(0.f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if (current_t > 1.5)
+        if (current_timestep > 1.5)
         {
             cloth.initialize();
             balls.initialize();
@@ -180,13 +195,13 @@ int main()
             glBindVertexArray(VAO_balls);
             glBindBuffer(GL_ARRAY_BUFFER, VBO_balls);
             glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ball_number * (ball_mesh_resolution_x + 1) * (ball_mesh_resolution_y + 1) * 6, balls_mesh.vertices, GL_STATIC_DRAW);
-            current_t = 0.f;
+            current_timestep = 0.f;
         }
 
         for (int i = 0; i < substeps; ++i)
         {
             substep(cloth, balls, dt);
-            current_t += dt;
+            current_timestep += dt;
         }
 
         mesh.update_vertices(cloth);
@@ -198,9 +213,7 @@ int main()
         glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         glm::mat4 projection = glm::mat4(1.0f);
         projection = glm::perspective(glm::radians(45.0f), static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 100.0f);
-        view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),  
-            glm::vec3(0.0f, 0.0f, 0.0f),           
-            glm::vec3(0.0f, 1.0f, 0.0f));
+        view = camera.get_view_matrix();
 
         cloth_shader.set_matrix4f("model", model);
         cloth_shader.set_matrix4f("view", view);
@@ -247,6 +260,16 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    // wasd movement
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.process_keyboard(FORWARD, delta_time);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.process_keyboard(BACKWARD, delta_time);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.process_keyboard(LEFT, delta_time);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.process_keyboard(RIGHT, delta_time);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -255,4 +278,27 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+}
+
+// glfw: whenever the mouse moves, this callback is called
+// -------------------------------------------------------
+void mouse_callback(GLFWwindow* window, double xpos_in, double ypos_in)
+{
+    float xpos = static_cast<float>(xpos_in);
+    float ypos = static_cast<float>(ypos_in);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.process_mouse_movement(xoffset, yoffset);
 }

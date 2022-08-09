@@ -36,7 +36,7 @@ template<int M, int N, typename T = float>
 class Cloth
 {
 public:
-	Cloth(const T quad_size);
+	Cloth(const T& quad_size);
 	~Cloth();
 
 	void initialize();
@@ -52,7 +52,7 @@ template<int Number, typename T = float>
 class Balls
 {
 public:
-	Balls(const T radius);
+	Balls(const T& radius);
 	~Balls();
 
 	void initialize();
@@ -99,7 +99,7 @@ public:
 };
 
 template<int M, int N, typename T>
-inline Cloth<M, N, T>::Cloth(const T quad_size)
+inline Cloth<M, N, T>::Cloth(const T& quad_size)
 {
 	position = Array<Vector3<T>, M, N>::Zero();
 	velocity = Array<Vector3<T>, M, N>::Zero();
@@ -134,7 +134,7 @@ inline void Cloth<M, N, T>::initialize()
 }
 
 template<int Number, typename T>
-inline Balls<Number, T>::Balls(const T radius)
+inline Balls<Number, T>::Balls(const T& radius)
 {
 	this->radius = radius;
 	this->quad_size_ball = 0;

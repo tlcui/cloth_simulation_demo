@@ -58,8 +58,8 @@ void mouse_callback(GLFWwindow* window, double xpos_in, double ypos_in);
 void processInput(GLFWwindow* window);
 
 // settings
-static constexpr unsigned int SCR_WIDTH = 800;
-static constexpr unsigned int SCR_HEIGHT = 600;
+static constexpr unsigned int SCR_WIDTH = 1024;
+static constexpr unsigned int SCR_HEIGHT = 1024;
 
 float last_time = static_cast<float>(glfwGetTime());
 float current_time = static_cast<float>(glfwGetTime());

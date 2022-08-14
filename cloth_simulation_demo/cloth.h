@@ -2,7 +2,7 @@
 #ifndef CLOTH_H_
 #define CLOTH_H_
 
-#define EIGEN_STACK_ALLOCATION_LIMIT 0
+//#define EIGEN_STACK_ALLOCATION_LIMIT 0
 
 #include <iostream>
 #include <random>
@@ -42,8 +42,8 @@ public:
 	void initialize();
 
 public:
-	Array<Vector3<T>, M, N> position;
-	Array<Vector3<T>, M, N> velocity;
+	Array<Vector3<T>, Dynamic, Dynamic> position;
+	Array<Vector3<T>, Dynamic, Dynamic> velocity;
 	T quad_size;
 };
 
@@ -99,10 +99,8 @@ public:
 };
 
 template<int M, int N, typename T>
-inline Cloth<M, N, T>::Cloth(const T& quad_size)
+inline Cloth<M, N, T>::Cloth(const T& quad_size) : position(M, N), velocity(M, N)
 {
-	position = Array<Vector3<T>, M, N>::Zero();
-	velocity = Array<Vector3<T>, M, N>::Zero();
 	this->quad_size = quad_size;
 }
 

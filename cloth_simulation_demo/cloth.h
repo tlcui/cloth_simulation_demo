@@ -11,6 +11,7 @@
 #include <utility>
 #include <Eigen/dense>
 #include <tbb/parallel_for.h>
+#include <tbb/blocked_range2d.h>
 
 using namespace Eigen;
 
@@ -164,11 +165,11 @@ inline void Balls<Number, T>::initialize()
 template<int M, int N, int Number, typename T=float>
 void substep(Cloth<M, N, T>& cloth, const Balls<Number, T>& balls, const T dt)
 {
-	tbb::parallel_for(tbb::blocked_range<int>(0, N), [&](const tbb::blocked_range<int>& r)
+	tbb::parallel_for(tbb::blocked_range2d<int>(0, M, 0, N), [&](const tbb::blocked_range2d<int>& r)
 		{
-			for (int j = r.begin(); j != r.end(); ++j)
+			for (int j = r.cols().begin(); j != r.cols().end(); ++j)
 			{
-				for (int i = 0; i < M; ++i)
+				for (int i = r.rows().begin(); i != r.rows().end(); ++i)
 				{
 					Vector3<T> force(0., -9.8, 0.); //gravity
 					for (auto& offset : spring_offset)

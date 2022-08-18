@@ -170,16 +170,21 @@ int main()
     // render loop
     glEnable(GL_DEPTH_TEST);
     float current_timestep = 0.f;
+    int frame_count = 0;
     while (!glfwWindowShouldClose(window))
     {
         // show fps
-        current_time = static_cast<float>(glfwGetTime());
-        delta_time = current_time - last_time;
-        fps = 1 / delta_time;
-        std::stringstream ss;
-        ss << "C++ cloth simulation " << fps << " FPS";
-        glfwSetWindowTitle(window, ss.str().c_str());
-        last_time = current_time;
+        if (frame_count >= 8)
+        {
+            current_time = static_cast<float>(glfwGetTime());
+            delta_time = current_time - last_time;
+            fps = frame_count / delta_time;
+            std::stringstream ss;
+            ss << "C++ cloth simulation " << fps << " FPS";
+            glfwSetWindowTitle(window, ss.str().c_str());
+            last_time = current_time;
+            frame_count = 0;
+        };
 
         // input
         processInput(window);
@@ -248,6 +253,8 @@ int main()
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        frame_count++;
     }
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
